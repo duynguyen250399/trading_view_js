@@ -35,6 +35,7 @@ const onTickMap: Map<String, TradingView.SubscribeBarsCallback> = new Map();
 
 const datafeed: TradingView.IBasicDataFeed = {
 	onReady: (callback: TradingView.OnReadyCallback) => {
+		console.log("[Datafeed] onReady() was called");
 		window.flutter_inappwebview
 			.callHandler(handlers.ON_READY)
 			.then((result) => {
@@ -47,6 +48,7 @@ const datafeed: TradingView.IBasicDataFeed = {
 		symbolType: string,
 		onResult: TradingView.SearchSymbolsCallback
 	) => {
+		console.log("[Datafeed] searchSymbols() was called");
 		window.flutter_inappwebview
 			.callHandler(handlers.SEARCH_SYMBOLS, userInput, exchange, symbolType)
 			.then((value) => {
@@ -66,6 +68,7 @@ const datafeed: TradingView.IBasicDataFeed = {
 		onError: TradingView.ErrorCallback,
 		extension: TradingView.SymbolResolveExtension
 	) => {
+		console.log("[Datafeed] resolveSymbol() was called");
 		window.flutter_inappwebview
 			.callHandler(handlers.RESOLVE_SYMBOLS, symbolName)
 			.then((value) => {
@@ -88,10 +91,19 @@ const datafeed: TradingView.IBasicDataFeed = {
 		onResult: TradingView.HistoryCallback,
 		onError: TradingView.ErrorCallback
 	) => {
+		console.log("[Datafeed] getBars() was called");
 		window.flutter_inappwebview
 			.callHandler(handlers.GET_BARS, symbolInfo, resolution, periodParams)
 			.then((value) => {
+				console.log(
+					"[Datafeed] getBars() -> onResult 1: ",
+					JSON.stringify(value)
+				);
 				if (value !== null && typeof value === "object") {
+					console.log(
+						"[Datafeed] getBars() -> onResult 2: ",
+						JSON.stringify(value)
+					);
 					onResult(value.bars, value.meta);
 				} else if (typeof value === "string") {
 					onError(value);
@@ -110,6 +122,7 @@ const datafeed: TradingView.IBasicDataFeed = {
 		listenerGuid: string,
 		onResetCacheNeededCallback: () => void
 	) => {
+		console.log("[Datafeed] subscribeBars() was called");
 		onTickMap.set(listenerGuid, onTick);
 
 		window.flutter_inappwebview.callHandler(
@@ -120,6 +133,7 @@ const datafeed: TradingView.IBasicDataFeed = {
 		);
 	},
 	unsubscribeBars: (listenerGuid: string) => {
+		console.log("[Datafeed] unsubscribeBars() was called");
 		onTickMap.delete(listenerGuid);
 
 		window.flutter_inappwebview.callHandler(
