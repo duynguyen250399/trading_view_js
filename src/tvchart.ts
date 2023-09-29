@@ -16,11 +16,6 @@ const handlers = {
 	SAVE_DATA: "saveData",
 };
 
-type ExtendChartingLibraryWidgetOptions =
-	TradingView.ChartingLibraryWidgetOptions & {
-		udf_url: string;
-	};
-
 declare global {
 	interface Window {
 		flutter_inappwebview: {
@@ -172,7 +167,7 @@ function onChartReady() {
 	});
 }
 
-function initializeChart(options: ExtendChartingLibraryWidgetOptions) {
+function initializeChart(options: TradingView.ChartingLibraryWidgetOptions) {
 	options.container = CHART_CONTAINER_ID;
 	options.library_path = CHART_LIBRARY_PATH;
 	options.datafeed = datafeed;
