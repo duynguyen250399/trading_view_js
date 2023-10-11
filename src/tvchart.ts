@@ -168,6 +168,7 @@ function onChartReady() {
 }
 
 function initializeChart(options: TradingView.ChartingLibraryWidgetOptions) {
+	console.log("Initialze trading view chart:", JSON.stringify(options));
 	options.container = CHART_CONTAINER_ID;
 	options.library_path = CHART_LIBRARY_PATH;
 	options.datafeed = datafeed;
