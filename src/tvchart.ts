@@ -6,6 +6,10 @@ const CHART_LIBRARY_PATH = "public/";
 
 const handlers = {
 	START: "start",
+	INIT_LOCALIZED_MESSAGES: "initLocalizedMessages",
+	DOWNLOAD_CHART_IMAGE: "downloadChartImage",
+	COPY_CHART_IMAGE: "copyChartImage",
+	COPY_CHART_IMAGE_LINK: "copyChartImageLink",
 	// Datafeed Handlers
 	ON_READY: "onReady",
 	SEARCH_SYMBOLS: "searchSymbols",
@@ -14,6 +18,19 @@ const handlers = {
 	SUBSCRIBE_BARS: "subscribeBars",
 	UNSUBSCRIBE_BARS: "unsubscribeBars",
 	SAVE_DATA: "saveData",
+};
+
+const chartImageLinkStatus = {
+	LOADING: "loading",
+	COMPLETED: "completed",
+};
+
+const cameraIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M11.118 6a.5.5 0 0 0-.447.276L9.809 8H5.5A1.5 1.5 0 0 0 4 9.5v10A1.5 1.5 0 0 0 5.5 21h16a1.5 1.5 0 0 0 1.5-1.5v-10A1.5 1.5 0 0 0 21.5 8h-4.309l-.862-1.724A.5.5 0 0 0 15.882 6h-4.764zm-1.342-.17A1.5 1.5 0 0 1 11.118 5h4.764a1.5 1.5 0 0 1 1.342.83L17.809 7H21.5A2.5 2.5 0 0 1 24 9.5v10a2.5 2.5 0 0 1-2.5 2.5h-16A2.5 2.5 0 0 1 3 19.5v-10A2.5 2.5 0 0 1 5.5 7h3.691l.585-1.17z"></path><path fill-rule="evenodd" clip-rule="evenodd" d="M13.5 18a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zm0 1a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9z"></path></svg>`;
+
+type LocalizedMessages = {
+	snapshot_download: string;
+	snapshot_copy_image: string;
+	snapshot_copy_image_link: string;
 };
 
 declare global {
@@ -90,15 +107,7 @@ const datafeed: TradingView.IBasicDataFeed = {
 		window.flutter_inappwebview
 			.callHandler(handlers.GET_BARS, symbolInfo, resolution, periodParams)
 			.then((value) => {
-				console.log(
-					"[Datafeed] getBars() -> onResult 1: ",
-					JSON.stringify(value)
-				);
 				if (value !== null && typeof value === "object") {
-					console.log(
-						"[Datafeed] getBars() -> onResult 2: ",
-						JSON.stringify(value)
-					);
 					onResult(value.bars, value.meta);
 				} else if (typeof value === "string") {
 					onError(value);
@@ -159,16 +168,74 @@ function callOnTick(payload: string) {
 }
 window.callOnTick = callOnTick;
 
+function createSnapshotDropdown() {
+	chart?.createDropdown({
+		title: "",
+		align: "right",
+		icon: cameraIcon,
+		items: [
+			{
+				title: localizedMessages?.snapshot_download ?? "Download Image",
+				onSelect: async () => {
+					const imageBase64 = await getScreenshotImage();
+					window.flutter_inappwebview.callHandler(
+						handlers.DOWNLOAD_CHART_IMAGE,
+						imageBase64
+					);
+				},
+			},
+			{
+				title: localizedMessages?.snapshot_copy_image ?? "Copy Image",
+				onSelect: async () => {
+					const imageBase64 = await getScreenshotImage();
+					window.flutter_inappwebview.callHandler(
+						handlers.COPY_CHART_IMAGE,
+						imageBase64
+					);
+				},
+			},
+			{
+				title: localizedMessages?.snapshot_copy_image_link ?? "Copy Image Link",
+				onSelect: () => {
+					chart?.takeScreenshot();
+					window.flutter_inappwebview.callHandler(
+						handlers.COPY_CHART_IMAGE_LINK,
+						chartImageLinkStatus.LOADING,
+						""
+					);
+				},
+			},
+		],
+	});
+}
+
+let localizedMessages: LocalizedMessages | undefined;
 function onChartReady() {
-	chart!.subscribe("onAutoSaveNeeded", () => {
+	chart?.headerReady().then(() => {
+		createSnapshotDropdown();
+	});
+
+	chart?.subscribe("onAutoSaveNeeded", () => {
 		chart!.save((state) => {
 			window.flutter_inappwebview.callHandler(handlers.SAVE_DATA, state);
 		});
 	});
+
+	chart?.subscribe("onScreenshotReady", (id) => {
+		const url = `https://www.tradingview.com/x/${id}`;
+		window.flutter_inappwebview.callHandler(
+			handlers.COPY_CHART_IMAGE_LINK,
+			chartImageLinkStatus.COMPLETED,
+			url
+		);
+	});
 }
 
 function initializeChart(options: TradingView.ChartingLibraryWidgetOptions) {
-	console.log("Initialze trading view chart:", JSON.stringify(options));
+	window.flutter_inappwebview
+		.callHandler(handlers.INIT_LOCALIZED_MESSAGES)
+		.then((messages) => (localizedMessages = messages));
+
 	options.container = CHART_CONTAINER_ID;
 	options.library_path = CHART_LIBRARY_PATH;
 	options.datafeed = datafeed;
@@ -182,3 +249,12 @@ function initializeChart(options: TradingView.ChartingLibraryWidgetOptions) {
 window.addEventListener(INAPP_WEBVIEW_READY, (event) => {
 	window.flutter_inappwebview.callHandler(handlers.START).then(initializeChart);
 });
+
+async function getScreenshotImage() {
+	if (chart === undefined) {
+		return null;
+	}
+
+	const screenshotCanvas = await chart!.takeClientScreenshot();
+	return screenshotCanvas.toDataURL();
+}
