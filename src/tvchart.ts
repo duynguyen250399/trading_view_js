@@ -239,6 +239,35 @@ function initializeChart(options: TradingView.ChartingLibraryWidgetOptions) {
 	options.container = CHART_CONTAINER_ID;
 	options.library_path = CHART_LIBRARY_PATH;
 	options.datafeed = datafeed;
+	options.custom_formatters = {
+		dateFormatter: {
+			format: (date) => {
+				return Intl.DateTimeFormat(options.locale).format(date);
+			},
+			formatLocal: (date) => {
+				return Intl.DateTimeFormat(options.locale).format(date);
+			},
+		},
+		timeFormatter: {
+			format: (date: Date) => {
+				return date.toTimeString().split(" ")[0];
+			},
+			formatLocal: (date: Date) => {
+				return date.toTimeString().split(" ")[0];
+			},
+		},
+		priceFormatterFactory: (
+			symbolInfo: TradingView.LibrarySymbolInfo | null,
+			minTick: string
+		) => {
+			return {
+				format: (price: number, signPositive?: boolean) => {
+					const formatted = (price / 1000).toFixed(2);
+					return parseFloat(formatted).toString();
+				},
+			};
+		},
+	};
 
 	if (chart == undefined) {
 		chart = new TradingView.widget(options);
