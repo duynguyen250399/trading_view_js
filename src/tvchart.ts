@@ -210,7 +210,7 @@ function createSnapshotDropdown() {
 }
 
 let localizedMessages: LocalizedMessages | undefined;
-function onChartReady() {
+function onChartReady(options: TradingView.ChartingLibraryWidgetOptions) {
 	chart?.headerReady().then(() => {
 		createSnapshotDropdown();
 	});
@@ -229,6 +229,15 @@ function onChartReady() {
 			url
 		);
 	});
+
+	chart?.chart().setResolution(options.interval);
+	// Candles chart
+	// See https://www.tradingview.com/charting-library-docs/latest/api/enums/Charting_Library.SeriesType
+	chart?.chart().setChartType(1);
+	chart
+		?.chart()
+		.getTimezoneApi()
+		.setTimezone(options.timezone ?? "Asia/Ho_Chi_Minh");
 }
 
 function initializeChart(options: TradingView.ChartingLibraryWidgetOptions) {
@@ -248,14 +257,6 @@ function initializeChart(options: TradingView.ChartingLibraryWidgetOptions) {
 				return Intl.DateTimeFormat(options.locale).format(date);
 			},
 		},
-		timeFormatter: {
-			format: (date: Date) => {
-				return date.toTimeString().split(" ")[0];
-			},
-			formatLocal: (date: Date) => {
-				return date.toTimeString().split(" ")[0];
-			},
-		},
 		priceFormatterFactory: (
 			symbolInfo: TradingView.LibrarySymbolInfo | null,
 			minTick: string
@@ -263,7 +264,7 @@ function initializeChart(options: TradingView.ChartingLibraryWidgetOptions) {
 			return {
 				format: (price: number, signPositive?: boolean) => {
 					const formatted = (price / 1000).toFixed(2);
-					return parseFloat(formatted).toString();
+					return formatted;
 				},
 			};
 		},
@@ -271,7 +272,7 @@ function initializeChart(options: TradingView.ChartingLibraryWidgetOptions) {
 
 	if (chart == undefined) {
 		chart = new TradingView.widget(options);
-		chart.onChartReady(onChartReady);
+		chart.onChartReady(() => onChartReady(options));
 	}
 }
 
