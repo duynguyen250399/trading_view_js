@@ -263,8 +263,10 @@ function initializeChart(options: TradingView.ChartingLibraryWidgetOptions) {
 		) => {
 			return {
 				format: (price: number, signPositive?: boolean) => {
-					const formatted = (price / 1000).toFixed(2);
-					return formatted;
+					return Intl.NumberFormat("en", {
+						maximumFractionDigits: 2,
+						minimumFractionDigits: 2,
+					}).format(price);
 				},
 			};
 		},
