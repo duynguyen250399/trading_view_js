@@ -107,16 +107,22 @@ const datafeed: TradingView.IBasicDataFeed = {
 		window.flutter_inappwebview
 			.callHandler(handlers.GET_BARS, symbolInfo, resolution, periodParams)
 			.then((value) => {
-				if (value !== null && typeof value === "object") {
+				if (
+					value !== null &&
+					value !== undefined &&
+					typeof value === "object"
+				) {
 					onResult(value.bars, value.meta);
-				} else if (typeof value === "string") {
-					onError(value);
 				} else {
-					onError("Unexpected getBars return type");
+					onResult([], {
+						noData: periodParams.firstDataRequest ? false : true,
+					});
 				}
 			})
-			.catch((reason) => {
-				onError("Unexpected error on getBars");
+			.catch((_) => {
+				onResult([], {
+					noData: periodParams.firstDataRequest ? false : true,
+				});
 			});
 	},
 	subscribeBars: (
