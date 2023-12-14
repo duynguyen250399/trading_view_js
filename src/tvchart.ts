@@ -17,6 +17,7 @@ const handlers = {
 	GET_BARS: "getBars",
 	SUBSCRIBE_BARS: "subscribeBars",
 	UNSUBSCRIBE_BARS: "unsubscribeBars",
+	GET_SERVER_TIME: "getServerTime",
 	SAVE_DATA: "saveData",
 };
 
@@ -31,6 +32,7 @@ type LocalizedMessages = {
 	snapshot_download: string;
 	snapshot_copy_image: string;
 	snapshot_copy_image_link: string;
+	generic_error: string;
 };
 
 declare global {
@@ -86,14 +88,12 @@ const datafeed: TradingView.IBasicDataFeed = {
 			.then((value) => {
 				if (value !== null && typeof value === "object") {
 					onResolve(value as TradingView.LibrarySymbolInfo);
-				} else if (typeof value === "string") {
-					onError(value);
 				} else {
-					onError("Unexpected resolveSymbol return type");
+					onError(localizedMessages?.generic_error ?? "System error");
 				}
 			})
-			.catch((reason) => {
-				onError("Unexpected error on resolveSymbol");
+			.catch((_) => {
+				onError(localizedMessages?.generic_error ?? "System error");
 			});
 	},
 	getBars: (
@@ -150,6 +150,12 @@ const datafeed: TradingView.IBasicDataFeed = {
 			handlers.UNSUBSCRIBE_BARS,
 			listenerGuid
 		);
+	},
+	getServerTime: (callback: TradingView.ServerTimeCallback) => {
+		console.log("[Datafeed] getServerTime() was called");
+		window.flutter_inappwebview
+			.callHandler(handlers.GET_SERVER_TIME)
+			.then((serverTimestamp) => callback(serverTimestamp));
 	},
 };
 
