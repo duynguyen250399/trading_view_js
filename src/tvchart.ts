@@ -3,6 +3,7 @@ import * as TradingView from "./charting_library/charting_library";
 const INAPP_WEBVIEW_READY = "flutterInAppWebViewPlatformReady";
 const CHART_CONTAINER_ID = "tvchart";
 const CHART_LIBRARY_PATH = "public/";
+const DEFAULT_TIMEZONE = "Asia/Ho_Chi_Minh";
 
 const handlers = {
 	START: "start",
@@ -159,10 +160,10 @@ const datafeed: TradingView.IBasicDataFeed = {
 	},
 };
 
-let chart: TradingView.IChartingLibraryWidget | undefined;
+let chartWidget: TradingView.IChartingLibraryWidget | undefined;
 
 function changeTheme(theme: TradingView.ThemeName) {
-	chart?.changeTheme(theme);
+	chartWidget?.changeTheme(theme);
 }
 window.changeTheme = changeTheme;
 
@@ -181,7 +182,7 @@ function callOnTick(payload: string) {
 window.callOnTick = callOnTick;
 
 function createSnapshotDropdown() {
-	chart?.createDropdown({
+	chartWidget?.createDropdown({
 		title: "",
 		align: "right",
 		icon: cameraIcon,
@@ -209,7 +210,7 @@ function createSnapshotDropdown() {
 			{
 				title: localizedMessages?.snapshot_copy_image_link ?? "Copy Image Link",
 				onSelect: () => {
-					chart?.takeScreenshot();
+					chartWidget?.takeScreenshot();
 					window.flutter_inappwebview.callHandler(
 						handlers.COPY_CHART_IMAGE_LINK,
 						chartImageLinkStatus.LOADING,
@@ -222,18 +223,19 @@ function createSnapshotDropdown() {
 }
 
 let localizedMessages: LocalizedMessages | undefined;
+
 function onChartReady(options: TradingView.ChartingLibraryWidgetOptions) {
-	chart?.headerReady().then(() => {
+	chartWidget?.headerReady().then(() => {
 		createSnapshotDropdown();
 	});
 
-	chart?.subscribe("onAutoSaveNeeded", () => {
-		chart!.save((state) => {
+	chartWidget?.subscribe("onAutoSaveNeeded", () => {
+		chartWidget!.save((state) => {
 			window.flutter_inappwebview.callHandler(handlers.SAVE_DATA, state);
 		});
 	});
 
-	chart?.subscribe("onScreenshotReady", (id) => {
+	chartWidget?.subscribe("onScreenshotReady", (id) => {
 		const url = `https://www.tradingview.com/x/${id}`;
 		window.flutter_inappwebview.callHandler(
 			handlers.COPY_CHART_IMAGE_LINK,
@@ -242,14 +244,13 @@ function onChartReady(options: TradingView.ChartingLibraryWidgetOptions) {
 		);
 	});
 
-	chart?.chart().setResolution(options.interval);
-	// Candles chart
-	// See https://www.tradingview.com/charting-library-docs/latest/api/enums/Charting_Library.SeriesType
-	chart?.chart().setChartType(1);
-	chart
-		?.chart()
-		.getTimezoneApi()
-		.setTimezone(options.timezone ?? "Asia/Ho_Chi_Minh");
+	const activeChart = chartWidget?.activeChart();
+	if (activeChart) {
+		activeChart.setResolution(options.interval);
+		activeChart.setChartType(1);
+		const timezoneApi = activeChart.getTimezoneApi();
+		timezoneApi.setTimezone(options.timezone ?? DEFAULT_TIMEZONE);
+	}
 }
 
 function initializeChart(options: TradingView.ChartingLibraryWidgetOptions) {
@@ -284,9 +285,9 @@ function initializeChart(options: TradingView.ChartingLibraryWidgetOptions) {
 		},
 	};
 
-	if (chart == undefined) {
-		chart = new TradingView.widget(options);
-		chart.onChartReady(() => onChartReady(options));
+	if (chartWidget == undefined) {
+		chartWidget = new TradingView.widget(options);
+		chartWidget.onChartReady(() => onChartReady(options));
 	}
 }
 
@@ -295,10 +296,10 @@ window.addEventListener(INAPP_WEBVIEW_READY, (event) => {
 });
 
 async function getScreenshotImage() {
-	if (chart === undefined) {
+	if (chartWidget === undefined) {
 		return null;
 	}
 
-	const screenshotCanvas = await chart!.takeClientScreenshot();
+	const screenshotCanvas = await chartWidget!.takeClientScreenshot();
 	return screenshotCanvas.toDataURL();
 }
