@@ -36,6 +36,10 @@ type LocalizedMessages = {
 	generic_error: string;
 };
 
+type CustomLibrarySymbolInfo = TradingView.LibrarySymbolInfo & {
+	price_precision: number;
+};
+
 declare global {
 	interface Window {
 		flutter_inappwebview: {
@@ -88,7 +92,7 @@ const datafeed: TradingView.IBasicDataFeed = {
 			.callHandler(handlers.RESOLVE_SYMBOLS, symbolName)
 			.then((value) => {
 				if (value !== null && typeof value === "object") {
-					onResolve(value as TradingView.LibrarySymbolInfo);
+					onResolve(value as CustomLibrarySymbolInfo);
 				} else {
 					onError(localizedMessages?.generic_error ?? "System error");
 				}
@@ -98,7 +102,7 @@ const datafeed: TradingView.IBasicDataFeed = {
 			});
 	},
 	getBars: (
-		symbolInfo: TradingView.LibrarySymbolInfo,
+		symbolInfo: CustomLibrarySymbolInfo,
 		resolution: TradingView.ResolutionString,
 		periodParams: TradingView.PeriodParams,
 		onResult: TradingView.HistoryCallback,
@@ -127,7 +131,7 @@ const datafeed: TradingView.IBasicDataFeed = {
 			});
 	},
 	subscribeBars: (
-		symbolInfo: TradingView.LibrarySymbolInfo,
+		symbolInfo: CustomLibrarySymbolInfo,
 		resolution: TradingView.ResolutionString,
 		onTick: TradingView.SubscribeBarsCallback,
 		listenerGuid: string,
@@ -271,14 +275,15 @@ function initializeChart(options: TradingView.ChartingLibraryWidgetOptions) {
 			},
 		},
 		priceFormatterFactory: (
-			symbolInfo: TradingView.LibrarySymbolInfo | null,
+			symbolInfo: CustomLibrarySymbolInfo | null,
 			minTick: string
 		) => {
 			return {
 				format: (price: number, signPositive?: boolean) => {
+					const precision = symbolInfo?.price_precision ?? 2;
 					return Intl.NumberFormat("en", {
-						maximumFractionDigits: 2,
-						minimumFractionDigits: 2,
+						maximumFractionDigits: precision,
+						minimumFractionDigits: precision,
 					}).format(price);
 				},
 			};
